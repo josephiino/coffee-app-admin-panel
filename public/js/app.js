@@ -51,10 +51,63 @@ document.addEventListener('DOMContentLoaded', function() {
             coffee: 65,
             milk: 42,
             water: 80
-        }
+        },
+        machines: [
+            {
+                id: 'CM-001',
+                location: 'İstanbul / Kadıköy',
+                status: 'online',
+                stock: {
+                    coffee: 78,
+                    milk: 65,
+                    water: 90
+                }
+            },
+            {
+                id: 'CM-002',
+                location: 'İstanbul / Beşiktaş',
+                status: 'online',
+                stock: {
+                    coffee: 45,
+                    milk: 30,
+                    water: 82
+                }
+            },
+            {
+                id: 'CM-003',
+                location: 'Ankara / Çankaya',
+                status: 'online',
+                stock: {
+                    coffee: 92,
+                    milk: 88,
+                    water: 95
+                }
+            },
+            {
+                id: 'CM-004',
+                location: 'İzmir / Karşıyaka',
+                status: 'offline',
+                stock: {
+                    coffee: 20,
+                    milk: 15,
+                    water: 35
+                }
+            },
+            {
+                id: 'CM-005',
+                location: 'İstanbul / Ataşehir',
+                status: 'online',
+                stock: {
+                    coffee: 67,
+                    milk: 59,
+                    water: 75
+                }
+            }
+        ]
     };
     
     updateDashboard(mockData);
+    updateMachineList(mockData.machines);
     
     // Dashboard verilerini güncelleme fonksiyonu
     function updateDashboard(data) {
@@ -127,5 +180,88 @@ document.addEventListener('DOMContentLoaded', function() {
             waterEl.querySelector('.stock-fill').style.width = data.stock_levels.water + '%';
             waterEl.querySelector('.stock-value').textContent = data.stock_levels.water + '%';
         }
+    }
+    
+    // Makine listesini güncelleme fonksiyonu
+    function updateMachineList(machines) {
+        const machineItemsContainer = document.querySelector('.machine-items');
+        if (!machineItemsContainer) return;
+        
+        // Mevcut içeriği temizle
+        machineItemsContainer.innerHTML = '';
+        
+        // Her makine için satır oluştur
+        machines.forEach(machine => {
+            const row = document.createElement('tr');
+            row.classList.add(machine.status === 'online' ? 'status-online' : 'status-offline');
+            
+            // Stok durumuna göre CSS sınıfları
+            const coffeeStockClass = getStockClass(machine.stock.coffee);
+            const milkStockClass = getStockClass(machine.stock.milk);
+            const waterStockClass = getStockClass(machine.stock.water);
+            
+            row.innerHTML = `
+                <td>${machine.id}</td>
+                <td>${machine.location}</td>
+                <td>
+                    <span class="status-badge ${machine.status === 'online' ? 'online' : 'offline'}">
+                        ${machine.status === 'online' ? 'Çevrimiçi' : 'Çevrimdışı'}
+                    </span>
+                </td>
+                <td>
+                    <div class="stock-indicator">
+                        <div class="stock-bar">
+                            <div class="stock-fill ${coffeeStockClass}" style="width: ${machine.stock.coffee}%"></div>
+                        </div>
+                        <span class="stock-percentage">${machine.stock.coffee}%</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="stock-indicator">
+                        <div class="stock-bar">
+                            <div class="stock-fill ${milkStockClass}" style="width: ${machine.stock.milk}%"></div>
+                        </div>
+                        <span class="stock-percentage">${machine.stock.milk}%</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="stock-indicator">
+                        <div class="stock-bar">
+                            <div class="stock-fill ${waterStockClass}" style="width: ${machine.stock.water}%"></div>
+                        </div>
+                        <span class="stock-percentage">${machine.stock.water}%</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-icon" title="Detaylar">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn btn-icon" title="Düzenle">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn btn-icon text-danger" title="Yeniden Başlat">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            machineItemsContainer.appendChild(row);
+        });
+    }
+    
+    // Stok yüzdesine göre uygun CSS sınıfını döndür
+    function getStockClass(percentage) {
+        if (percentage <= 20) return 'stock-critical';
+        if (percentage <= 40) return 'stock-warning';
+        return 'stock-good';
     }
 }); 
