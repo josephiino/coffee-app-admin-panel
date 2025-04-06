@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboBrew Admin - Anasayfa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Anasayfa</h1>
+                <div class="header-actions">
+                    <div class="date-selector">
+                        <button class="btn btn-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <span>Bugün</span>
+                    </div>
+                </div>
+            </div>
+            <div class="content-body">
+                <!-- İstatistik Kartları -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Toplam Satış</div>
+                            <div class="stat-period">Bu Ay</div>
+                        </div>
+                        <div class="stat-value">₺0</div>
+                        <div class="stat-details">
+                            <div class="stat-change positive">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 4L12 8L8 12M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>0%</span>
+                            </div>
+                            <div class="stat-comparison">
+                                <span class="label">Geçen Ay:</span>
+                                <span class="value">₺0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Cihaz Durumu</div>
+                            <div class="stat-period">Anlık</div>
+                        </div>
+                        <div class="stat-value">0/0</div>
+                        <div class="stat-details">
+                            <div class="stat-change">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 12L4 8L8 4M12 8H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>0 çevrimdışı</span>
+                            </div>
+                            <div class="status-breakdown">
+                                <div class="status-item">
+                                    <span class="status-dot dot-online"></span>
+                                    <span>0 Çevrimiçi</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-dot dot-offline"></span>
+                                    <span>0 Çevrimdışı</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Günlük Sipariş</div>
+                            <div class="stat-period">Bugün</div>
+                        </div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-details">
+                            <div class="stat-change positive">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 4L12 8L8 12M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>0%</span>
+                            </div>
+                            <div class="stat-comparison">
+                                <span class="label">Dün:</span>
+                                <span class="value">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Stok Durumu</div>
+                            <div class="stat-period">Anlık</div>
+                        </div>
+                        <div class="stat-value">0 Uyarı</div>
+                        <div class="stat-details">
+                            <div class="stat-change warning">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 5V8M8 11H8.01M15 8C15 11.866 11.866 15 8 15C4.13401 15 1 11.866 1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>Stok durumu</span>
+                            </div>
+                            <div class="stock-warnings">
+                                <div class="warning-item">
+                                    <span class="warning-dot"></span>
+                                    <span>0 cihazda kahve az</span>
+                                </div>
+                                <div class="warning-item">
+                                    <span class="warning-dot"></span>
+                                    <span>0 cihazda süt az</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anlık Siparişler -->
+                <div class="orders-section">
+                    <h2>Aktif Siparişler</h2>
+                    <div class="orders-list">
+                        <!-- Siparişler buraya yüklenecek -->
+                    </div>
+                </div>
+
+                <!-- Sistem Durumu -->
+                <div class="real-time-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Sistem Durumu</h3>
+                            <div class="time-period">Anlık</div>
+                        </div>
+                        <div class="system-metrics">
+                            <div class="metric-item">
+                                <div class="metric-label">Sıcaklık</div>
+                                <div class="metric-value">0°C</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Nem</div>
+                                <div class="metric-value">0%</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Su Basıncı</div>
+                                <div class="metric-value">0 bar</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Stok Seviyeleri</h3>
+                            <div class="time-period">Anlık</div>
+                        </div>
+                        <div class="stock-levels">
+                            <div class="stock-item">
+                                <div class="stock-label">Kahve</div>
+                                <div class="stock-bar">
+                                    <div class="stock-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="stock-value">0%</div>
+                            </div>
+                            <div class="stock-item">
+                                <div class="stock-label">Süt</div>
+                                <div class="stock-bar">
+                                    <div class="stock-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="stock-value">0%</div>
+                            </div>
+                            <div class="stock-item">
+                                <div class="stock-label">Su</div>
+                                <div class="stock-bar">
+                                    <div class="stock-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="stock-value">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/loadSidebar.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
