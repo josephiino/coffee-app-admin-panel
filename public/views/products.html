@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboBrew Admin - Ürünler</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Ürünler</h1>
+                <div class="header-actions">
+                    <button id="add-product-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Yeni Ürün Ekle
+                    </button>
+                </div>
+            </div>
+            <div class="content-body">
+                <!-- Ürün Arama Bölümü -->
+                <div class="search-bar">
+                    <input type="text" id="product-search" placeholder="Ürün ara...">
+                    <button class="btn btn-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Ürün Listesi -->
+                <div class="products-grid" id="products-container">
+                    <!-- Ürünler buraya dinamik olarak eklenecek -->
+                    <div class="loading-spinner">Yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ürün Ekle/Düzenle Modal -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Yeni Ürün Ekle</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form">
+                    <input type="hidden" id="product-id">
+                    <div class="form-group">
+                        <label for="product-name">Ürün Adı</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-price">Fiyat (₺)</label>
+                        <input type="number" id="product-price" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category">Kategori</label>
+                        <select id="product-category" required>
+                            <option value="">Kategori Seçin</option>
+                            <option value="coffee">Kahve</option>
+                            <option value="tea">Çay</option>
+                            <option value="chocolate">Sıcak Çikolata</option>
+                            <option value="other">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-description">Açıklama</label>
+                        <textarea id="product-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-image">Görsel URL</label>
+                        <input type="text" id="product-image">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-status">Durum</label>
+                        <select id="product-status" required>
+                            <option value="active">Aktif</option>
+                            <option value="inactive">Pasif</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary close-modal-btn">İptal</button>
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Silme Onay Modalı -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ürün Sil</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Bu ürünü silmek istediğinize emin misiniz?</p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal-btn">İptal</button>
+                    <button id="confirm-delete" type="button" class="btn btn-danger">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/loadSidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase yapılandırma - gerçek bilgilerinizle değiştirin
+            const firebaseConfig = {
+                apiKey: "AIzaSyDqan-ccv0ewJpRo_U3oZz8WN8-NcXAeno",
+                authDomain: "robobrewbetaapp.firebaseapp.com",
+                projectId: "robobrewbetaapp",
+                storageBucket: "robobrewbetaapp.appspot.com",
+                appId: "1:96218340172:web:38bdd8f8a3d4e0af208de9"
+            };
+
+            // Lütfen yukarıdaki yapılandırma bilgilerini Firebase konsolundan aldığınız gerçek değerlerle değiştirin.
+            // API anahtarını Firebase konsolunda "Proje Ayarları" > "Genel" sekmesinden bulabilirsiniz.
+            
+            // Firebase başlatma
+            firebase.initializeApp(firebaseConfig);
+            
+            // Firestore referansı
+            const db = firebase.firestore();
+            const productsRef = db.collection('products');
+            
+            // DOM elementleri
+            const productsContainer = document.getElementById('products-container');
+            const productSearch = document.getElementById('product-search');
+            const addProductBtn = document.getElementById('add-product-btn');
+            const productModal = document.getElementById('product-modal');
+            const deleteModal = document.getElementById('delete-modal');
+            const productForm = document.getElementById('product-form');
+            const modalTitle = document.getElementById('modal-title');
+            const closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            
+            // Ürün ID'si (düzenleme ve silme için)
+            let currentProductId = null;
+            
+            // Oturum kontrolü
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (!user) {
+                    // Kullanıcı giriş yapmamış, login sayfasına yönlendir
+                    window.location.href = 'loginview.html';
+                }
+            });
+            
+            // Ürünleri yükle
+            loadProducts();
+            
+            // Ürün arama
+            productSearch.addEventListener('input', function() {
+                loadProducts(this.value);
+            });
+            
+            // Yeni ürün ekleme modalını aç
+            addProductBtn.addEventListener('click', function() {
+                modalTitle.textContent = 'Yeni Ürün Ekle';
+                productForm.reset();
+                currentProductId = null;
+                openModal(productModal);
+            });
+            
+            // Ürün formunu gönder (ekle/güncelle)
+            productForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const productData = {
+                    name: document.getElementById('product-name').value,
+                    basePrice: parseFloat(document.getElementById('product-price').value),
+                    category: document.getElementById('product-category').value,
+                    id: document.getElementById('product-category').value.toLowerCase() + "_" + document.getElementById('product-name').value.toLowerCase().replace(/\s+/g, '_'),
+                    description: document.getElementById('product-description').value,
+                    image: document.getElementById('product-image').value,
+                    customization: {
+                        sizes: {
+                            "Büyük": parseFloat(document.getElementById('product-price').value) * 1.2,
+                            "Orta": parseFloat(document.getElementById('product-price').value),
+                            "Küçük": parseFloat(document.getElementById('product-price').value) * 0.8
+                        }
+                    },
+                    status: document.getElementById('product-status').value,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (currentProductId) {
+                    // Mevcut ürünü güncelle
+                    updateProduct(currentProductId, productData);
+                } else {
+                    // Yeni ürün ekle
+                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    addProduct(productData);
+                }
+            });
+            
+            // Ürünleri yükleme fonksiyonu
+            function loadProducts(searchTerm = '') {
+                productsContainer.innerHTML = '<div class="loading-spinner">Yükleniyor...</div>';
+                
+                let query = productsRef;
+                
+                // Arama filtresi uygula
+                if (searchTerm) {
+                    // Firestore'da tam metin araması yok, basit bir kontrol yapalım
+                    // Firebase Cloud Functions ile daha gelişmiş arama yapılabilir
+                    query = query.where('name', '>=', searchTerm)
+                              .where('name', '<=', searchTerm + '\uf8ff');
+                } else {
+                    // Aramaya göre sıralama yapma, koleksiyonu doğrudan çek
+                    query = productsRef;
+                }
+                
+                query.get().then((querySnapshot) => {
+                    productsContainer.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        productsContainer.innerHTML = '<div class="no-data">Ürün bulunamadı.</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const product = doc.data();
+                        product.id = doc.id;
+                        renderProductCard(product);
+                        console.log("Yüklenen ürün:", product); // Kontrol için konsola yazdırma
+                    });
+                }).catch((error) => {
+                    console.error("Ürünler yüklenirken hata oluştu:", error);
+                    productsContainer.innerHTML = '<div class="error-message">Ürünler yüklenirken bir hata oluştu.</div>';
+                });
+            }
+            
+            // Ürün kartı oluşturma
+            function renderProductCard(product) {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-image">
+                        <img src="${product.image || '../images/no-image.png'}" alt="${product.name}" onerror="this.src='../images/no-image.png'">
+                    </div>
+                    <div class="product-details">
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-category">${getCategoryName(product.category)}</p>
+                        <p class="product-price">₺${product.basePrice.toFixed(2)}</p>
+                        <div class="product-status ${product.status || 'active'}">
+                            ${product.status === 'active' ? 'Aktif' : 'Pasif'}
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-icon btn-edit" data-id="${product.id}">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-icon btn-delete" data-id="${product.id}">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                <path d="M10 11v6M14 11v6"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                productsContainer.appendChild(card);
+                
+                // Düzenleme butonuna tıklama
+                card.querySelector('.btn-edit').addEventListener('click', function() {
+                    openEditModal(product.id);
+                });
+                
+                // Silme butonuna tıklama
+                card.querySelector('.btn-delete').addEventListener('click', function() {
+                    currentProductId = product.id;
+                    openModal(deleteModal);
+                });
+            }
+            
+            // Kategori adı getir
+            function getCategoryName(categoryCode) {
+                const categories = {
+                    'coffee': 'Kahve',
+                    'tea': 'Çay',
+                    'chocolate': 'Sıcak Çikolata',
+                    'other': 'Diğer'
+                };
+                
+                return categories[categoryCode] || categoryCode;
+            }
+            
+            // Düzenleme modalını aç
+            function openEditModal(productId) {
+                productsRef.doc(productId).get().then((doc) => {
+                    if (doc.exists) {
+                        const product = doc.data();
+                        
+                        // Form alanlarını doldur
+                        document.getElementById('product-id').value = productId;
+                        document.getElementById('product-name').value = product.name;
+                        document.getElementById('product-price').value = product.basePrice;
+                        document.getElementById('product-category').value = product.category;
+                        document.getElementById('product-description').value = product.description || '';
+                        document.getElementById('product-image').value = product.image || '';
+                        document.getElementById('product-status').value = product.status || 'active';
+                        
+                        // Modal başlığını değiştir
+                        modalTitle.textContent = 'Ürün Düzenle';
+                        
+                        // Aktif ürün ID'sini ayarla
+                        currentProductId = productId;
+                        
+                        // Modalı aç
+                        openModal(productModal);
+                    }
+                }).catch((error) => {
+                    console.error("Ürün bilgileri yüklenirken hata oluştu:", error);
+                });
+            }
+            
+            // Yeni ürün ekle
+            function addProduct(productData) {
+                productsRef.add(productData)
+                    .then(() => {
+                        closeModal(productModal);
+                        loadProducts();
+                        showToast('Ürün başarıyla eklendi.');
+                    })
+                    .catch((error) => {
+                        console.error("Ürün eklenirken hata oluştu:", error);
+                        showToast('Ürün eklenirken bir hata oluştu.', 'error');
+                    });
+            }
+            
+            // Ürün güncelle
+            function updateProduct(productId, productData) {
+                productsRef.doc(productId).update(productData)
+                    .then(() => {
+                        closeModal(productModal);
+                        loadProducts();
+                        showToast('Ürün başarıyla güncellendi.');
+                    })
+                    .catch((error) => {
+                        console.error("Ürün güncellenirken hata oluştu:", error);
+                        showToast('Ürün güncellenirken bir hata oluştu.', 'error');
+                    });
+            }
+            
+            // Ürün sil
+            function deleteProduct(productId) {
+                productsRef.doc(productId).delete()
+                    .then(() => {
+                        closeModal(deleteModal);
+                        loadProducts();
+                        showToast('Ürün başarıyla silindi.');
+                    })
+                    .catch((error) => {
+                        console.error("Ürün silinirken hata oluştu:", error);
+                        showToast('Ürün silinirken bir hata oluştu.', 'error');
+                    });
+            }
+            
+            // Silme onayı
+            confirmDeleteBtn.addEventListener('click', function() {
+                if (currentProductId) {
+                    deleteProduct(currentProductId);
+                }
+            });
+            
+            // Modalı aç
+            function openModal(modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+            
+            // Modalı kapat
+            function closeModal(modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+            
+            // Tüm modal kapatma butonlarını dinle
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    closeModal(modal);
+                });
+            });
+            
+            // Modal dışına tıklama ile kapatma
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    closeModal(event.target);
+                }
+            });
+            
+            // Bildirim göster
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html> 

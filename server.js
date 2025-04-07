@@ -6,6 +6,13 @@ const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const compression = require('compression');
+const dotenv = require('dotenv');
+
+// Çevre değişkenlerini yükle
+dotenv.config();
+
+// Firebase yapılandırmasını içe aktar
+const firebase = require('./server/config/firebase');
 
 // Express uygulamasını oluştur
 const app = express();
@@ -269,6 +276,114 @@ app.put('/api/orders/:orderId/status', (req, res) => {
   });
 });
 
+// Firestore ürün API'leri
+app.get('/api/firestore/products', async (req, res) => {
+  try {
+    if (!firebase.isConfigured) {
+      return res.status(500).json({ 
+        error: 'Firebase yapılandırılmamış', 
+        details: firebase.errorMessage 
+      });
+    }
+
+    const productsRef = firebase.db.collection('products');
+    const snapshot = await productsRef.get();
+    
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    
+    const products = [];
+    snapshot.forEach(doc => {
+      products.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Firestore ürünleri alınırken hata:', error);
+    res.status(500).json({ error: 'Sunucu hatası', details: error.message });
+  }
+});
+
+app.post('/api/firestore/products', async (req, res) => {
+  try {
+    if (!firebase.isConfigured) {
+      return res.status(500).json({ 
+        error: 'Firebase yapılandırılmamış', 
+        details: firebase.errorMessage 
+      });
+    }
+
+    const productsRef = firebase.db.collection('products');
+    const productData = {
+      ...req.body,
+      createdAt: firebase.admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    const docRef = await productsRef.add(productData);
+    
+    res.status(201).json({
+      id: docRef.id,
+      ...productData
+    });
+  } catch (error) {
+    console.error('Firestore ürün eklenirken hata:', error);
+    res.status(500).json({ error: 'Sunucu hatası', details: error.message });
+  }
+});
+
+app.put('/api/firestore/products/:id', async (req, res) => {
+  try {
+    if (!firebase.isConfigured) {
+      return res.status(500).json({ 
+        error: 'Firebase yapılandırılmamış', 
+        details: firebase.errorMessage 
+      });
+    }
+
+    const { id } = req.params;
+    const productsRef = firebase.db.collection('products').doc(id);
+    
+    const productData = {
+      ...req.body,
+      updatedAt: firebase.admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await productsRef.update(productData);
+    
+    res.json({
+      id,
+      ...productData
+    });
+  } catch (error) {
+    console.error('Firestore ürün güncellenirken hata:', error);
+    res.status(500).json({ error: 'Sunucu hatası', details: error.message });
+  }
+});
+
+app.delete('/api/firestore/products/:id', async (req, res) => {
+  try {
+    if (!firebase.isConfigured) {
+      return res.status(500).json({ 
+        error: 'Firebase yapılandırılmamış', 
+        details: firebase.errorMessage 
+      });
+    }
+
+    const { id } = req.params;
+    await firebase.db.collection('products').doc(id).delete();
+    
+    res.json({ id, deleted: true });
+  } catch (error) {
+    console.error('Firestore ürün silinirken hata:', error);
+    res.status(500).json({ error: 'Sunucu hatası', details: error.message });
+  }
+});
+
 // 404 sayfası
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -350,4 +465,11 @@ io.on('connection', (socket) => {
 // Sunucuyu başlat
 server.listen(PORT, () => {
   console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
+  
+  // Firebase durumunu kontrol et
+  if (firebase.isConfigured) {
+    console.log('Firebase Firestore bağlantısı aktif');
+  } else {
+    console.log('Firebase Firestore bağlantısı yapılandırılmamış:', firebase.errorMessage);
+  }
 });

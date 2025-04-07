@@ -3,6 +3,9 @@ node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
+# Firebase
+robobrewbetaapp-firebase-adminsdk-fbsvc-782c78b699.json
+firebase-service-account.json
 
 # Environment variables
 .env
