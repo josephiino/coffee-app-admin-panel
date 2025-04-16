@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboBrew Admin - Siparişler</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* Sayfa yüklenirken görsel kaymaları önleyen stiller */
+        body {
+            overflow-x: hidden;
+        }
+        .dashboard {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .dashboard.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen" class="loading-screen">
+        <div class="spinner"></div>
+        <p>Yükleniyor...</p>
+    </div>
+    
+    <div class="dashboard" style="display: none;">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Siparişler</h1>
+                <div class="header-actions">
+                    <div class="date-selector">
+                        <button class="btn btn-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <span>Bugün</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Sipariş Yönetimi -->
+                <div class="orders-section">
+                    <div class="section-header">
+                        <h2>Sipariş Listesi</h2>
+                        <div class="filter-group">
+                            <select class="form-select">
+                                <option>Tüm Durumlar</option>
+                                <option>Beklemede</option>
+                                <option>Hazırlanıyor</option>
+                                <option>Hazır</option>
+                                <option>Tamamlandı</option>
+                                <option>İptal Edildi</option>
+                            </select>
+                            <input type="date" class="form-input">
+                            <div class="search-box">
+                                <input type="text" placeholder="Sipariş ara..." class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="orders-container">
+                        <div class="chart-card">
+                            <div class="order-table-container">
+                                <table class="order-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sipariş ID</th>
+                                            <th>Lokasyon</th>
+                                            <th>Makine ID</th>
+                                            <th>Ürünler</th>
+                                            <th>Tarih</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="order-items">
+                                        <!-- JavaScript ile doldurulacak -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="pagination">
+                                <button class="btn btn-sm" id="prev-page">&laquo; Önceki</button>
+                                <span class="page-info">Sayfa <span id="current-page">1</span> / <span id="total-pages">1</span></span>
+                                <button class="btn btn-sm" id="next-page">Sonraki &raquo;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/loadSidebar.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dashboard = document.querySelector('.dashboard');
+            
+            // Auth.js içinde dashboard görünür hale geldiğinde 'visible' sınıfını ekle
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'style' && 
+                        dashboard.style.display === 'flex') {
+                        setTimeout(function() {
+                            dashboard.classList.add('visible');
+                        }, 50);
+                    }
+                });
+            });
+            
+            observer.observe(dashboard, { attributes: true });
+            
+            // Sayfalama değişkenleri
+            let currentPage = 1;
+            let totalPages = 1;
+            
+            console.log('DOM yüklendi. Socket.IO bağlantısı kuruluyor...');
+            // Socket.IO bağlantısını kur
+            const socket = io(); 
+
+            // Bağlantı olayları için loglama
+            socket.on('connect', () => {
+                console.log("Socket.IO sunucusuna başarıyla bağlandı. ID:", socket.id);
+            });
+
+            socket.on('disconnect', (reason) => {
+                console.log("Socket.IO bağlantısı kesildi. Neden:", reason);
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error("Socket.IO bağlantı hatası:", error);
+            });
+
+            // Sunucudan gelen 'orders_updated' olayını dinle
+            socket.on('orders_updated', () => {
+                console.log("[Socket.IO] 'orders_updated' sinyali alındı. Veriler yeniden çekiliyor...");
+                // Veriyi mevcut sayfaya göre yeniden çek
+                fetchOrderData(currentPage); 
+            });
+            console.log("[Socket.IO] 'orders_updated' olayı dinleniyor...");
+
+            // Sipariş verilerini getir
+            fetchOrderData(currentPage);
+            
+            // Sayfalama butonları
+            document.getElementById('prev-page').addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchOrderData(currentPage);
+                }
+            });
+            
+            document.getElementById('next-page').addEventListener('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    fetchOrderData(currentPage);
+                }
+            });
+            
+            // Sipariş verilerini getir
+            function fetchOrderData(page) {
+                fetch(`/api/orders?page=${page}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displayOrders(data.orders);
+                        
+                        // Sayfalama bilgilerini güncelle
+                        document.getElementById('current-page').textContent = data.page;
+                        document.getElementById('total-pages').textContent = data.totalPages;
+                        
+                        // Sayfalama durumunu kaydet
+                        currentPage = data.page;
+                        totalPages = data.totalPages;
+                        
+                        // Sayfalama butonlarını güncelle
+                        document.getElementById('prev-page').disabled = currentPage <= 1;
+                        document.getElementById('next-page').disabled = currentPage >= totalPages;
+                    })
+                    .catch(error => {
+                        console.error('Sipariş verileri alınırken hata:', error);
+                    });
+            }
+            
+            // Sipariş verilerini tabloya ekle
+            function displayOrders(orders) {
+                const orderList = document.querySelector('.order-items');
+                orderList.innerHTML = '';
+                
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    
+                    // Sipariş durumuna göre CSS sınıfı
+                    const statusClass = getStatusClass(order.status);
+                    
+                    // Sipariş tarihini formatlama
+                    const orderDate = new Date(order.date);
+                    const formattedDate = formatDate(orderDate);
+                    
+                    // Ürünleri listeleme
+                    const productList = order.products.map(p => `${p.name} (${p.quantity})`).join(', ');
+                    
+                    row.innerHTML = `
+                        <td>${order.id}</td>
+                        <td>${order.location}</td>
+                        <td>${order.machineId}</td>
+                        <td>${productList}</td>
+                        <td>${formattedDate}</td>
+                        <td><span class="status-badge ${statusClass}">${translateStatus(order.status)}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-icon" title="Detaylar" data-order-id="${order.id}">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-icon" title="Düzenle" data-order-id="${order.id}">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/>
+                                        <path d="M17.5 3.5a2.121 2.121 0 010 3L10 14l-4 1 1-4 7.5-7.5a2.121 2.121 0 013 0z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    
+                    orderList.appendChild(row);
+                });
+                
+                // Detay butonlarına olay dinleyicileri ekle
+                document.querySelectorAll('.btn[title="Detaylar"]').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const orderId = this.getAttribute('data-order-id');
+                        viewOrderDetails(orderId);
+                    });
+                });
+            }
+            
+            // Sipariş detaylarını görüntüle
+            function viewOrderDetails(orderId) {
+                fetch(`/api/orders/${orderId}`)
+                    .then(response => response.json())
+                    .then(order => {
+                        console.log('Sipariş detayları:', order);
+                        // Burada bir modal veya ayrıntılı görünüm açılabilir
+                        alert(`Sipariş ${orderId} detayları konsola yazdırıldı.`);
+                    })
+                    .catch(error => {
+                        console.error('Sipariş detayları alınırken hata:', error);
+                    });
+            }
+            
+            // Duruma göre CSS sınıfını belirle
+            function getStatusClass(status) {
+                switch(status) {
+                    case 'pending': return 'pending';
+                    case 'preparing': return 'preparing';
+                    case 'ready': return 'ready';
+                    case 'completed': return 'completed';
+                    case 'cancelled': return 'cancelled';
+                    default: return '';
+                }
+            }
+            
+            // Durumu Türkçe'ye çevir
+            function translateStatus(status) {
+                switch(status) {
+                    case 'pending': return 'Beklemede';
+                    case 'preparing': return 'Hazırlanıyor';
+                    case 'ready': return 'Hazır';
+                    case 'completed': return 'Tamamlandı';
+                    case 'cancelled': return 'İptal Edildi';
+                    default: return status;
+                }
+            }
+            
+            // Tarihi formatla
+            function formatDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                
+                return `${day}.${month}.${year} ${hours}:${minutes}`;
+            }
+        });
+    </script>
+</body>
+</html> 

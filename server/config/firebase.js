@@ -32,6 +32,7 @@ try {
     module.exports = { 
       admin: null, 
       db: null,
+      rtdb: null,
       isConfigured: false,
       errorMessage: `Servis hesabı dosyası bulunamadı: ${serviceAccountPath}`
     };
@@ -42,6 +43,7 @@ try {
   module.exports = { 
     admin: null, 
     db: null,
+    rtdb: null,
     isConfigured: false,
     errorMessage: `Firebase yapılandırma hatası: ${error.message}`
   };
@@ -49,54 +51,48 @@ try {
 }
 
 // Firebase Admin SDK'yı başlat
+let db, rtdb;
 try {
+  // .env dosyasından veya Firebase konsolundan alınan databaseURL
+  const databaseURL = process.env.FIREBASE_DATABASE_URL;
+  if (!databaseURL) {
+    console.warn('UYARI: .env dosyasında FIREBASE_DATABASE_URL tanımlı değil. Realtime Database başlatılamayacak.');
+  }
+
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: databaseURL // Realtime DB için URL'yi ekle
   });
-  
+
   console.log('Firebase Admin SDK başarıyla başlatıldı.');
-  
+
   // Firestore veritabanı referansını oluştur
-  const db = admin.firestore();
-  
-  // Firebase Admin ve Firestore referanslarını dışa aktar
-  module.exports = { 
-    admin, 
-    db,
+  db = admin.firestore();
+  console.log('Firestore bağlantısı aktif.');
+
+  // Realtime Database referansını oluştur (sadece databaseURL varsa)
+  if (databaseURL) {
+    rtdb = admin.database();
+    console.log('Realtime Database bağlantısı aktif.');
+  } else {
+    rtdb = null; // URL yoksa null ata
+  }
+
+  // Firebase Admin, Firestore ve Realtime DB referanslarını dışa aktar
+  module.exports = {
+    admin,
+    db,       // Firestore
+    rtdb,     // Realtime Database
     isConfigured: true,
     errorMessage: null
   };
 } catch (error) {
   console.error('Firebase Admin SDK başlatılırken hata oluştu:', error);
-  module.exports = { 
-    admin: null, 
+  module.exports = {
+    admin: null,
     db: null,
+    rtdb: null, // Hata durumunda null ata
     isConfigured: false,
     errorMessage: `Firebase başlatma hatası: ${error.message}`
   };
 }
-
-// Firebase yapılandırmasını içe aktar
-const { db } = require('./server/config/firebase');
-
-// ... mevcut kod ...
-
-// Firestore'dan veri çekme örneği
-app.get('/api/firebase-test', async (req, res) => {
-  try {
-    const snapshot = await db.collection('kahve-makineleri').get();
-    const makineler = [];
-    
-    snapshot.forEach(doc => {
-      makineler.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
-    res.json(makineler);
-  } catch (error) {
-    console.error('Firestore hatası:', error);
-    res.status(500).json({ error: 'Veritabanı hatası' });
-  }
-});
