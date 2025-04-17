@@ -20,96 +20,61 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDashboard(data);
     });
     
-    // Örnek verilerle dashboard'u güncelle (geliştirme amaçlı)
-    const mockData = {
-        sales: {
-            total: 4250,
-            change: 12,
-            previous: 3800
-        },
-        devices: {
-            total: 5,
-            online: 4,
-            offline: 1
-        },
-        orders: {
-            today: 18,
-            change: 5,
-            yesterday: 17
-        },
-        stock: {
-            warnings: 2,
-            coffee_low: 1,
-            milk_low: 1
-        },
-        system: {
-            temperature: 24.5,
-            humidity: 65,
-            pressure: 1.2
-        },
-        stock_levels: {
-            coffee: 65,
-            milk: 42,
-            water: 80
-        },
-        machines: [
-            {
-                id: 'CM-001',
-                location: 'İstanbul / Kadıköy',
-                status: 'online',
-                stock: {
-                    coffee: 78,
-                    milk: 65,
-                    water: 90
+    // Gerçek verileri çek ve dashboard'u güncelle
+    fetchDashboardData();
+
+    function fetchDashboardData() {
+        console.log('Dashboard verileri çekiliyor...');
+        // Toplam satışı çek
+        fetch('/api/orders/stats/total-sales')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Toplam satış alınamadı: ${response.statusText}`);
                 }
-            },
-            {
-                id: 'CM-002',
-                location: 'İstanbul / Beşiktaş',
-                status: 'online',
-                stock: {
-                    coffee: 45,
-                    milk: 30,
-                    water: 82
-                }
-            },
-            {
-                id: 'CM-003',
-                location: 'Ankara / Çankaya',
-                status: 'online',
-                stock: {
-                    coffee: 92,
-                    milk: 88,
-                    water: 95
-                }
-            },
-            {
-                id: 'CM-004',
-                location: 'İzmir / Karşıyaka',
-                status: 'offline',
-                stock: {
-                    coffee: 20,
-                    milk: 15,
-                    water: 35
-                }
-            },
-            {
-                id: 'CM-005',
-                location: 'İstanbul / Ataşehir',
-                status: 'online',
-                stock: {
-                    coffee: 67,
-                    milk: 59,
-                    water: 75
-                }
-            }
-        ]
-    };
+                return response.json();
+            })
+            .then(salesData => {
+                console.log('Toplam satış verisi:', salesData);
+                // Satış kartını güncelle
+                updateSalesCard(salesData.totalSales);
+            })
+            .catch(error => {
+                console.error('Toplam satış çekilirken hata:', error);
+                // Hata durumunda kartı sıfırla veya bir mesaj göster
+                updateSalesCard(0, true); // Hata olduğunu belirt
+            });
+
+        // TODO: Diğer dashboard verilerini (cihaz durumu, sipariş sayısı vb.) 
+        //       ilgili API endpoint'lerinden çekip updateDashboard fonksiyonunu 
+        //       çağıracak kodlar buraya eklenebilir.
+        // Şimdilik sadece satış güncelleniyor.
+    }
     
-    updateDashboard(mockData);
-    updateMachineList(mockData.machines);
-    
-    // Dashboard verilerini güncelleme fonksiyonu
+    // Sadece satış kartını güncelleyen fonksiyon
+    function updateSalesCard(total, hasError = false) {
+        console.log(`[updateSalesCard] Çağrıldı. Değer: ${total}, Hata: ${hasError}`);
+        const valueElement = document.querySelector('.stat-card:nth-child(1) .stat-value');
+        const changeElement = document.querySelector('.stat-card:nth-child(1) .stat-change span');
+        const comparisonElement = document.querySelector('.stat-card:nth-child(1) .stat-comparison .value');
+        const changeContainer = document.querySelector('.stat-card:nth-child(1) .stat-change');
+        const comparisonContainer = document.querySelector('.stat-card:nth-child(1) .stat-comparison');
+
+        if (valueElement) {
+            console.log('[updateSalesCard] Hedef element bulundu:', valueElement);
+            valueElement.textContent = hasError ? 'Veri Alınamadı' : `₺${total.toFixed(2)}`;
+            
+            console.log('[updateSalesCard] Element içeriği toplam tutar ile güncellendi.');
+        } else {
+            console.error('[updateSalesCard] Hedef element (.stat-card:nth-child(1) .stat-value) bulunamadı!');
+        }
+        if (changeElement) changeElement.textContent = '-';
+        if (comparisonElement) comparisonElement.textContent = '-';
+        if (changeContainer) changeContainer.style.visibility = hasError ? 'hidden' : 'visible';
+        if (comparisonContainer) comparisonContainer.style.visibility = hasError ? 'hidden' : 'visible';
+    }
+
+    // Mevcut updateDashboard fonksiyonu diğer kartlar için kullanılabilir
+    // ancak artık doğrudan mockData ile çağrılmamalı.
     function updateDashboard(data) {
         // Satış verileri güncelleme
         if (data.sales) {
@@ -264,4 +229,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (percentage <= 40) return 'stock-warning';
         return 'stock-good';
     }
+
+    // --- Socket.IO Entegrasyonu Başlangıç ---
+    console.log('Socket.IO bağlantısı kuruluyor (app.js)...');
+
+    // Mevcut socket değişkenini kullanarak olayları dinle
+    socket.on('connect', () => {
+        console.log('Socket.IO sunucusuna başarıyla bağlandı (app.js). ID:', socket.id);
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('Socket.IO bağlantısı kesildi (app.js). Neden:', reason);
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Socket.IO bağlantı hatası (app.js):', error);
+    });
+
+    // Toplam satış güncelleme olayını dinle
+    socket.on('total_sales_updated', (data) => {
+        console.log("[Socket.IO] 'total_sales_updated' sinyali alındı:", data);
+        if (data && typeof data.totalSales === 'number') {
+            updateSalesCard(data.totalSales); // Satış kartını yeni değerle güncelle
+        } else {
+            console.warn('Alınan total_sales_updated verisi geçersiz.');
+        }
+    });
+    console.log("[Socket.IO] 'total_sales_updated' olayı dinleniyor...");
+    // --- Socket.IO Entegrasyonu Bitiş ---
 }); 

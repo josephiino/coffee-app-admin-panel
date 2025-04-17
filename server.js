@@ -62,18 +62,58 @@ app.use('/api/orders', orderRoutes);
 
 // Realtime Database'deki sipariş değişikliklerini dinle ve istemcilere bildir
 if (isConfigured && rtdb) {
-  const ordersDbRef = rtdb.ref('orders');
-  
+  const ordersDbRef = rtdb.ref('orders'); 
+
   // 'value' olayını dinle
   ordersDbRef.on('value', 
-    (snapshot) => { // Başarı callback'i
+    (snapshot) => { // Artık async değil
       console.log("[RTDB Listener] /orders değişti. 'orders_updated' eventi gönderiliyor.");
-      io.emit('orders_updated'); // Sinyali gönder
+      io.emit('orders_updated'); // Sipariş listesi güncelleme sinyali
+
+      let currentTotalSales = 0; // Hesaplama için başlangıç değeri
+      try {
+        console.log("[RTDB Listener] Anlık toplam satış hesaplanıyor...");
+        if (snapshot.exists()) { // Dinleyiciden gelen snapshot verisi var mı?
+            const ordersData = snapshot.val(); // Snapshot'tan veriyi al
+            // console.log("[RTDB Listener] Anlık Snapshot verisi:", JSON.stringify(ordersData, null, 0)); // Gerekirse logla
+
+            if (ordersData && typeof ordersData === 'object') {
+                Object.keys(ordersData).forEach(key => {
+                    const data = ordersData[key];
+                    if (data && typeof data.price === 'number') {
+                        currentTotalSales += data.price;
+                    } else if (data && data.products && Array.isArray(data.products)) {
+                         data.products.forEach(product => {
+                             if (product && typeof product.price === 'number') {
+                                currentTotalSales += product.price * (product.quantity || 1);
+                             }
+                         });
+                     } else if (data && typeof data.totalPrice === 'number') {
+                          currentTotalSales += data.totalPrice;
+                     }
+                    // Başka fiyat alanları için kontroller buraya eklenebilir
+                });
+                console.log("[RTDB Listener] Anlık hesaplama bitti, toplam:", currentTotalSales);
+            } else {
+                console.log("[RTDB Listener] Anlık snapshot verisi obje formatında değil veya boş.");
+            }
+        } else {
+             console.log("[RTDB Listener] Anlık snapshot mevcut değil (veri yok).");
+        }
+      } catch (error) {
+          console.error("[RTDB Listener] Anlık toplam satış hesaplanırken HATA oluştu:", error);
+          currentTotalSales = 0; // Hata durumunda sıfırla
+      }
+      
+      // Hesaplanan (veya hata durumunda 0 olan) değeri gönder
+      console.log("[RTDB Listener] 'total_sales_updated' eventi gönderiliyor, değer:", currentTotalSales);
+      io.emit('total_sales_updated', { totalSales: currentTotalSales }); 
+
     }, 
-    (error) => { // Hata callback'i
-      console.error("[RTDB Listener] /orders dinlenirken hata oluştu:", error);
-    } // Callback'ler bitti
-  ); // .on() bitti
+    (error) => { 
+      console.error("[RTDB Listener] /orders dinlenirken HATA:", error);
+    } 
+  ); 
 
   console.log('[RTDB Listener] /orders yolu dinleniyor...');
 } else {
