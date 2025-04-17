@@ -1,220 +1,89 @@
 <!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoboBrew Admin - Anasayfa</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-</head>
-<body>
-    <div class="dashboard">
-        <div id="sidebar-container"></div>
-        <div class="main-content">
-            <div class="content-header">
-                <h1>Anasayfa</h1>
-                <div class="header-actions">
-                    <div class="date-selector">
-                        <button class="btn btn-icon">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                        </button>
-                        <span>Bugün</span>
-                    </div>
-                </div>
-            </div>
-            <div class="content-body">
-                <!-- İstatistik Kartları -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-title">Toplam Satış</div>
-                            <div class="stat-period">Bu Ay</div>
-                        </div>
-                        <div class="stat-value">₺0</div>
-                        <div class="stat-details">
-                            <div class="stat-change positive">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 4L12 8L8 12M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <span>0%</span>
-                            </div>
-                            <div class="stat-comparison">
-                                <span class="label">Geçen Ay:</span>
-                                <span class="value">₺0</span>
-                            </div>
-                        </div>
-                    </div>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome to Firebase Hosting</title>
 
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-title">Cihaz Durumu</div>
-                            <div class="stat-period">Anlık</div>
-                        </div>
-                        <div class="stat-value">0/0</div>
-                        <div class="stat-details">
-                            <div class="stat-change">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 12L4 8L8 4M12 8H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <span>0 çevrimdışı</span>
-                            </div>
-                            <div class="status-breakdown">
-                                <div class="status-item">
-                                    <span class="status-dot dot-online"></span>
-                                    <span>0 Çevrimiçi</span>
-                                </div>
-                                <div class="status-item">
-                                    <span class="status-dot dot-offline"></span>
-                                    <span>0 Çevrimdışı</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/11.6.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/11.6.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-database-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-messaging-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-analytics-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-remote-config-compat.js"></script>
+    <script defer src="/__/firebase/11.6.0/firebase-performance-compat.js"></script>
+    <!-- 
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-title">Günlük Sipariş</div>
-                            <div class="stat-period">Bugün</div>
-                        </div>
-                        <div class="stat-value">0</div>
-                        <div class="stat-details">
-                            <div class="stat-change positive">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 4L12 8L8 12M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <span>0%</span>
-                            </div>
-                            <div class="stat-comparison">
-                                <span class="label">Dün:</span>
-                                <span class="value">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-title">Stok Durumu</div>
-                            <div class="stat-period">Anlık</div>
-                        </div>
-                        <div class="stat-value">0 Uyarı</div>
-                        <div class="stat-details">
-                            <div class="stat-change warning">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 5V8M8 11H8.01M15 8C15 11.866 11.866 15 8 15C4.13401 15 1 11.866 1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <span>Stok durumu</span>
-                            </div>
-                            <div class="stock-warnings">
-                                <div class="warning-item">
-                                    <span class="warning-dot"></span>
-                                    <span>0 cihazda kahve az</span>
-                                </div>
-                                <div class="warning-item">
-                                    <span class="warning-dot"></span>
-                                    <span>0 cihazda süt az</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Otomat Makineleri Listesi -->
-                <div class="machines-section">
-                    <h2>Otomat Makineleri</h2>
-                    <div class="chart-card machine-list-card">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Cihaz Listesi</h3>
-                            <div class="machine-actions">
-                                <button class="btn btn-sm btn-primary">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                    Cihaz Ekle
-                                </button>
-                            </div>
-                        </div>
-                        <div class="machine-table-container">
-                            <table class="machine-table">
-                                <thead>
-                                    <tr>
-                                        <th>Cihaz ID</th>
-                                        <th>Lokasyon</th>
-                                        <th>Durum</th>
-                                        <th>Kahve Stok</th>
-                                        <th>Süt Stok</th>
-                                        <th>Su Stok</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="machine-items">
-                                    <!-- Otomat makineleri buraya yüklenecek -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sistem Durumu -->
-                <div class="real-time-grid">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Sistem Durumu</h3>
-                            <div class="time-period">Anlık</div>
-                        </div>
-                        <div class="system-metrics">
-                            <div class="metric-item">
-                                <div class="metric-label">Sıcaklık</div>
-                                <div class="metric-value">0°C</div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="metric-label">Nem</div>
-                                <div class="metric-value">0%</div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="metric-label">Su Basıncı</div>
-                                <div class="metric-value">0 bar</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Stok Seviyeleri</h3>
-                            <div class="time-period">Anlık</div>
-                        </div>
-                        <div class="stock-levels">
-                            <div class="stock-item">
-                                <div class="stock-label">Kahve</div>
-                                <div class="stock-bar">
-                                    <div class="stock-fill" style="width: 0%"></div>
-                                </div>
-                                <div class="stock-value">0%</div>
-                            </div>
-                            <div class="stock-item">
-                                <div class="stock-label">Süt</div>
-                                <div class="stock-bar">
-                                    <div class="stock-fill" style="width: 0%"></div>
-                                </div>
-                                <div class="stock-value">0%</div>
-                            </div>
-                            <div class="stock-item">
-                                <div class="stock-label">Su</div>
-                                <div class="stock-bar">
-                                    <div class="stock-fill" style="width: 0%"></div>
-                                </div>
-                                <div class="stock-value">0%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <style media="screen">
+      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
+      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
+      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
+      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
+      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
+      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
+      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
+      @media (max-width: 600px) {
+        body, #message { margin-top: 0; background: white; box-shadow: none; }
+        body { border-top: 16px solid #ffa100; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="message">
+      <h2>Welcome</h2>
+      <h1>Firebase Hosting Setup Complete</h1>
+      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
+      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
     </div>
+    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script src="js/loadSidebar.js"></script>
-    <script src="js/app.js"></script>
-</body>
-</html> 
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const loadEl = document.querySelector('#load');
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        // // The Firebase SDK is initialized and available here!
+        //
+        // firebase.auth().onAuthStateChanged(user => { });
+        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
+        // firebase.firestore().doc('/foo/bar').get().then(() => { });
+        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
+        // firebase.messaging().requestPermission().then(() => { });
+        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
+        // firebase.analytics(); // call to activate
+        // firebase.analytics().logEvent('tutorial_completed');
+        // firebase.performance(); // call to activate
+        //
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+        try {
+          let app = firebase.app();
+          let features = [
+            'auth', 
+            'database', 
+            'firestore',
+            'functions',
+            'messaging', 
+            'storage', 
+            'analytics', 
+            'remoteConfig',
+            'performance',
+          ].filter(feature => typeof app[feature] === 'function');
+          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+        } catch (e) {
+          console.error(e);
+          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        }
+      });
+    </script>
+  </body>
+</html>

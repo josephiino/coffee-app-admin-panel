@@ -46,14 +46,23 @@ router.get('/', async (req, res) => {
                 orderDateStr = new Date().toISOString(); // Fallback
             }
 
+            // RTDB'deki üst seviye alanlardan ürün bilgilerini al
+            const productInfo = {
+                id: data.id || null, // Ürünün kendi ID'si varsa (yoksa null)
+                name: data.name || 'Bilinmeyen Ürün',
+                price: typeof data.price === 'number' ? data.price : 0,
+                quantity: typeof data.quantity === 'number' ? data.quantity : 1,
+                size: data.size || null // Varsa size bilgisini de ekle
+                // Gerekirse başka ürün detayları eklenebilir
+            };
+
             orders.push({
-              id: key,
+              id: key, // Siparişin RTDB anahtarı
               location: data.machineLocation || 'Bilinmiyor',
               machineId: data.machineId || 'N/A',
-              // !! DİKKAT: Mevcut RTDB yapısı ile bu alan doğru çalışmaz.
-              // RTDB'deki her kayıt tek ürün gibi görünüyor, burada ise ürün dizisi bekleniyor.
-              products: Array.isArray(data.products) ? data.products : [], 
-              date: orderDateStr, // Düzeltilmiş tarih
+              // Frontend'in beklediği format: Tek elemanlı bir products dizisi oluştur
+              products: [productInfo],
+              date: orderDateStr, 
               status: data.status || 'pending'
             });
         } else {
@@ -182,5 +191,45 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Yeni Endpoint: Toplam Satış Tutarını Hesapla
+router.get('/stats/total-sales', async (req, res) => {
+    if (!isConfigured || !rtdb) {
+        return res.status(500).json({ error: 'Sunucu hatası: Realtime DB yapılandırılmamış.' });
+    }
+    try {
+        const snapshot = await rtdb.ref('orders').once('value');
+        const ordersData = snapshot.val();
+        let totalSales = 0;
+
+        if (ordersData && typeof ordersData === 'object') {
+            Object.keys(ordersData).forEach(key => {
+                const data = ordersData[key];
+                // Varsayım: Her kayıtta 'price' adında sayısal bir alan var.
+                // Eğer fiyat 'products' dizisi içindeyse, bu kısmı güncellemek gerekir.
+                if (data && typeof data.price === 'number') {
+                    totalSales += data.price;
+                } else if (data && data.products && Array.isArray(data.products)) {
+                    // Eğer fiyat products dizisindeyse (alternatif yapı)
+                    data.products.forEach(product => {
+                        if (product && typeof product.price === 'number') {
+                           totalSales += product.price * (product.quantity || 1); // Miktarı da hesaba kat
+                        }
+                    });
+                } else if (data && typeof data.totalPrice === 'number') {
+                    // Eğer siparişin ana seviyesinde totalPrice varsa
+                     totalSales += data.totalPrice;
+                }
+                // Başka olası fiyat alanları varsa buraya ek kontrol eklenebilir
+            });
+        }
+
+        console.log('Hesaplanan Toplam Satış:', totalSales);
+        res.json({ totalSales: totalSales });
+
+    } catch (error) {
+        console.error("Toplam satış hesaplanırken hata:", error);
+        res.status(500).json({ error: 'Veritabanından veri alınamadı.', totalSales: 0, details: error.message });
+    }
+});
 
 module.exports = router;
