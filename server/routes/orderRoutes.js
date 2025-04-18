@@ -204,22 +204,41 @@ router.get('/stats/total-sales', async (req, res) => {
         if (ordersData && typeof ordersData === 'object') {
             Object.keys(ordersData).forEach(key => {
                 const data = ordersData[key];
-                // Varsayım: Her kayıtta 'price' adında sayısal bir alan var.
-                // Eğer fiyat 'products' dizisi içindeyse, bu kısmı güncellemek gerekir.
-                if (data && typeof data.price === 'number') {
-                    totalSales += data.price;
-                } else if (data && data.products && Array.isArray(data.products)) {
-                    // Eğer fiyat products dizisindeyse (alternatif yapı)
-                    data.products.forEach(product => {
-                        if (product && typeof product.price === 'number') {
-                           totalSales += product.price * (product.quantity || 1); // Miktarı da hesaba kat
-                        }
-                    });
-                } else if (data && typeof data.totalPrice === 'number') {
-                    // Eğer siparişin ana seviyesinde totalPrice varsa
-                     totalSales += data.totalPrice;
+
+                // Daha sağlam kontrol: Eğer veri geçerli bir nesne değilse atla
+                if (!data || typeof data !== 'object' || data === null) {
+                    console.warn(`Geçersiz sipariş verisi atlanıyor (key: ${key}):`, data);
+                    return; // Sonraki iterasyona geç
                 }
-                // Başka olası fiyat alanları varsa buraya ek kontrol eklenebilir
+
+                try { // Her siparişin işlenmesini try-catch içine al
+                    if (typeof data.price === 'number') {
+                        // Doğrudan fiyat alanı varsa
+                        totalSales += data.price;
+                    } else if (data.products && Array.isArray(data.products)) {
+                        // products dizisi varsa
+                        data.products.forEach((product, index) => {
+                            // Ürünün geçerli bir nesne ve fiyatın sayı olup olmadığını kontrol et
+                            if (product && typeof product === 'object' && typeof product.price === 'number') {
+                                // Miktar geçerli bir sayı ise kullan, değilse 1 varsay
+                                const quantity = (product.quantity && typeof product.quantity === 'number' && product.quantity > 0) ? product.quantity : 1;
+                                totalSales += product.price * quantity;
+                            } else {
+                                console.warn(`Sipariş ${key} içindeki geçersiz ürün atlanıyor (index ${index}):`, product);
+                            }
+                        });
+                    } else if (typeof data.totalPrice === 'number') {
+                        // totalPrice alanı varsa
+                        totalSales += data.totalPrice;
+                    }
+                    // else { 
+                    //     // İsteğe bağlı: Fiyat bilgisi bulunamayan siparişleri logla
+                    //     console.warn(`Sipariş ${key} için tanınan bir fiyat alanı bulunamadı (price, products array, veya totalPrice).`);
+                    // }
+                } catch (orderError) {
+                    // Tek bir siparişteki hata tüm hesaplamayı durdurmasın
+                    console.error(`Sipariş işlenirken hata oluştu (key: ${key}):`, orderError, "Sipariş Verisi:", data);
+                }
             });
         }
 
