@@ -5,6 +5,5 @@ runConfig:
   concurrency: 80 # isteği aynı anda işler
 
 scripts:
-  buildCommand: npm run build # varsa
   runCommand: node server.js # “npm start” yerine
 
