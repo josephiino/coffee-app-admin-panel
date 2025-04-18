@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Socket.io bağlantısını kur
-    const socket = io();
+    // Backend URL'sini tanımla
+    const backendUrl = 'https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app'; 
+
+    // Socket.io bağlantısını kur (belirtilen backend URL'si ile)
+    const socket = io(backendUrl);
     
     // Avatar kontrolü
     const avatarImages = document.querySelectorAll('.avatar');
@@ -25,8 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function fetchDashboardData() {
         console.log('Dashboard verileri çekiliyor...');
-        // Toplam satışı çek
-        fetch('/api/orders/stats/total-sales')
+        // Toplam satışı çek (belirtilen backend URL'si ile)
+        fetch(`${backendUrl}/api/orders/stats/total-sales`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Toplam satış alınamadı: ${response.statusText}`);
