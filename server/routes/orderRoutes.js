@@ -193,11 +193,17 @@ router.delete('/:id', async (req, res) => {
 
 // Yeni Endpoint: Toplam Satış Tutarını Hesapla
 router.get('/stats/total-sales', async (req, res) => {
+    // Başlangıç kontrolü ve loglama
     if (!isConfigured || !rtdb) {
-        return res.status(500).json({ error: 'Sunucu hatası: Realtime DB yapılandırılmamış.' });
+        const errorMsg = 'Sunucu hatası: Realtime DB yapılandırılmamış veya başlatılamamış (rtdb objesi null).';
+        console.error('[Stats Endpoint Error - Config]', errorMsg, { isConfigured, rtdbExists: !!rtdb });
+        return res.status(500).json({ error: errorMsg, totalSales: 0 });
     }
+
     try {
+        console.log('[Stats Endpoint] /orders verisi çekiliyor...'); // Başlangıç logu
         const snapshot = await rtdb.ref('orders').once('value');
+        console.log('[Stats Endpoint] /orders verisi çekildi, snapshot var mı:', snapshot.exists()); // Snapshot durumu logu
         const ordersData = snapshot.val();
         let totalSales = 0;
 
@@ -246,8 +252,14 @@ router.get('/stats/total-sales', async (req, res) => {
         res.json({ totalSales: totalSales });
 
     } catch (error) {
-        console.error("Toplam satış hesaplanırken hata:", error);
-        res.status(500).json({ error: 'Veritabanından veri alınamadı.', totalSales: 0, details: error.message });
+        // Daha detaylı hata loglaması
+        console.error('[Stats Endpoint Error - Main Catch]', 'Toplam satış hesaplanırken ana try-catch bloğunda hata oluştu:', error); // error objesi stack trace içermeli
+        res.status(500).json({ 
+            error: 'Toplam satış hesaplanırken sunucu hatası.', 
+            totalSales: 0, 
+            // Güvenlik nedeniyle error.message'ı doğrudan kullanıcıya göstermemek daha iyi olabilir.
+            // details: error.message 
+        });
     }
 });
 
