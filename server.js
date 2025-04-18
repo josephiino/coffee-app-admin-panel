@@ -15,7 +15,15 @@ dotenv.config();
 // Express uygulamasını oluştur
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000", // Yerel geliştirme
+      "https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app/" // Canlı App Hosting URL'si eklendi
+    ],
+    methods: ["GET", "POST"]
+  }
+});
 
 // Port tanımla
 const PORT = process.env.PORT || 3000;
