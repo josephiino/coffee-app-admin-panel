@@ -12,59 +12,33 @@
  */
 
 const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
+// const path = require('path'); // path modülü artık gereksiz
+// const fs = require('fs'); // fs modülü artık gereksiz
 
-// Servis hesabı dosya yolu (iki farklı olası konum kontrol edilir)
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
-                          path.join(__dirname, '../../firebase-service-account.json');
+// Servis hesabı dosya yolu ve okuma mantığı kaldırıldı.
 
-// Servis hesabı dosyasının varlığını kontrol et
-let serviceAccount;
-try {
-  if (fs.existsSync(serviceAccountPath)) {
-    serviceAccount = require(serviceAccountPath);
-  } else {
-    console.warn('Firebase servis hesabı dosyası bulunamadı:', serviceAccountPath);
-    console.warn('Firebase Admin SDK başlatılamıyor.');
-    
-    // Servis hesabı olmadan devam etme (geliştirme amaçlı)
-    module.exports = { 
-      admin: null, 
-      db: null,
-      rtdb: null,
-      isConfigured: false,
-      errorMessage: `Servis hesabı dosyası bulunamadı: ${serviceAccountPath}`
-    };
-    return;
-  }
-} catch (error) {
-  console.error('Firebase yapılandırma hatası:', error);
-  module.exports = { 
-    admin: null, 
-    db: null,
-    rtdb: null,
-    isConfigured: false,
-    errorMessage: `Firebase yapılandırma hatası: ${error.message}`
-  };
-  return;
-}
-
-// Firebase Admin SDK'yı başlat
+// Firebase Admin SDK'yı başlat (Application Default Credentials ile)
 let db, rtdb;
+let isConfigured = false;
+let errorMessage = null;
+
 try {
   // .env dosyasından veya Firebase konsolundan alınan databaseURL
+  // Ortam değişkeninden okumak iyi bir pratik
   const databaseURL = process.env.FIREBASE_DATABASE_URL;
   if (!databaseURL) {
-    console.warn('UYARI: .env dosyasında FIREBASE_DATABASE_URL tanımlı değil. Realtime Database başlatılamayacak.');
+    // Uyarı vermek yerine, hatayı kaydedip devam edelim.
+    // Realtime DB kullanmaya çalışınca hata verecektir.
+    console.warn('UYARI: FIREBASE_DATABASE_URL ortam değişkeni tanımlı değil. Realtime Database kullanılamayabilir.');
   }
 
+  // Sadece initializeApp çağır. Otomatik olarak ortam kimlik bilgilerini kullanacak.
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: databaseURL // Realtime DB için URL'yi ekle
+    // credential kısmı kaldırıldı.
+    databaseURL: databaseURL // RTDB URL hala gerekli olabilir (projeye bağlı)
   });
 
-  console.log('Firebase Admin SDK başarıyla başlatıldı.');
+  console.log('Firebase Admin SDK başarıyla başlatıldı (ADC ile).');
 
   // Firestore veritabanı referansını oluştur
   db = admin.firestore();
@@ -72,27 +46,35 @@ try {
 
   // Realtime Database referansını oluştur (sadece databaseURL varsa)
   if (databaseURL) {
-    rtdb = admin.database();
-    console.log('Realtime Database bağlantısı aktif.');
+    try {
+      rtdb = admin.database();
+      console.log('Realtime Database bağlantısı aktif.');
+      isConfigured = true; // Hem Firestore hem RTDB (varsa) başarılıysa true yap
+    } catch (rtdbError) {
+       console.error("Realtime Database başlatılırken hata (URL doğru mu?):", rtdbError);
+       rtdb = null;
+       // isConfigured false kalır veya sadece Firestore için true yapılabilir.
+       // Şimdilik genel bir hata mesajı ayarlayalım.
+       errorMessage = `Realtime Database başlatılamadı: ${rtdbError.message}`;
+    }
   } else {
     rtdb = null; // URL yoksa null ata
+    isConfigured = true; // Sadece Firestore başarılıysa da true kabul edelim
   }
 
-  // Firebase Admin, Firestore ve Realtime DB referanslarını dışa aktar
-  module.exports = {
-    admin,
-    db,       // Firestore
-    rtdb,     // Realtime Database
-    isConfigured: true,
-    errorMessage: null
-  };
 } catch (error) {
-  console.error('Firebase Admin SDK başlatılırken hata oluştu:', error);
-  module.exports = {
-    admin: null,
-    db: null,
-    rtdb: null, // Hata durumunda null ata
-    isConfigured: false,
-    errorMessage: `Firebase başlatma hatası: ${error.message}`
-  };
+  console.error('Firebase Admin SDK başlatılırken hata oluştu (ADC):', error);
+  db = null;
+  rtdb = null;
+  isConfigured = false;
+  errorMessage = `Firebase başlatma hatası (ADC): ${error.message}`;
 }
+
+// Firebase Admin, Firestore ve Realtime DB referanslarını dışa aktar
+module.exports = {
+  admin, // admin objesi hala dışa aktarılabilir
+  db,       // Firestore
+  rtdb,     // Realtime Database
+  isConfigured, // Genel yapılandırma durumu
+  errorMessage
+};
