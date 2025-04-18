@@ -1,0 +1,14 @@
+# apphosting.yaml
+runConfig:
+  minInstances: 0 # trafiksizken sıfıra iner → maliyet yok
+  maxInstances: 50
+  concurrency: 80 # isteği aynı anda işler
+
+scripts:
+  buildCommand: npm run build # varsa
+  runCommand: node server.js # “npm start” yerine
+
+env: # ortam değişkenleri
+  - variable: IYZI_API_KEY
+    secret: iyzi_api_key # Cloud Secret Manager’da saklanacak
+    availability: [RUNTIME]

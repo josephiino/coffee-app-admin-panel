@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="sidebar">
             <div class="sidebar-header">
                 <div class="logo-container">
-                    <img src="${rootPath}images/logo.svg" alt="RoboBrew Logo" class="logo">
+                    <img src="/images/logo.svg" alt="RoboBrew Logo" class="logo">
                     <h2>RoboBrew Admin</h2>
                 </div>
             </div>
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <img src="${rootPath}images/avatar.png" alt="Kullanıcı Avatarı" class="avatar">
+                    <img src="/images/avatar.png" alt="Kullanıcı Avatarı" class="avatar">
                     <div class="user-details">
                         <div class="user-name">Admin Kullanıcı</div>
                         <div class="user-role">Yönetici</div>

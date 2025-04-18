@@ -1,3 +1,5 @@
+console.log('[AuthCheck] auth.js starting...'); // Başlangıç log'u eklendi
+
 /**
  * RoboBrew Admin Yetkilendirme ve Oturum Yönetimi
  */
@@ -27,13 +29,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Firebase auth state değişikliğini dinle
     firebase.auth().onAuthStateChanged(function(user) {
+        console.log('[AuthCheck] Auth state changed. User:', user ? user.uid : 'null');
+        const currentPath = window.location.pathname;
+        console.log('[AuthCheck] Current path:', currentPath);
+        const isLoginPage = currentPath.endsWith('loginview.html') || currentPath.endsWith('loginview');
+        console.log('[AuthCheck] Is Login Page:', isLoginPage);
+
         if (user) {
             // Kullanıcı giriş yapmış
+            console.log('[AuthCheck] User is logged in.');
             if (isLoginPage) {
                 // Login sayfasındaysak ve kullanıcı giriş yapmışsa, ana sayfaya yönlendir
+                console.log('[AuthCheck] Redirecting from Login page to Home...');
                 navigateToHome();
             } else if (loadingScreen && dashboardContent) {
                 // Ana sayfada veya diğer sayfalardaysa, yükleme ekranını gizle ve içeriği göster
+                console.log('[AuthCheck] Showing content for logged-in user.');
                 loadingScreen.style.display = 'none';
                 dashboardContent.style.display = 'flex';
                 
@@ -42,11 +53,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             // Kullanıcı giriş yapmamış
+            console.log('[AuthCheck] User is logged out.');
             if (!isLoginPage) {
-                // Login sayfasında değilsek ve kullanıcı giriş yapmamışsa, login sayfasına yönlendir
+                // Login sayfasında değilsek ve kullanıcı giriş yapmamışsa, login sayfasına yönlendir (Koruma eklendi)
+                console.log('[AuthCheck] Not on Login page and logged out. Redirecting to /loginview...');
                 window.location.href = '/loginview';
             } else if (loadingScreen) {
                 // Login sayfasındaysak, yükleme ekranını gizle
+                console.log('[AuthCheck] On Login page and logged out. Hiding loading screen.');
                 loadingScreen.style.display = 'none';
             }
         }
@@ -57,7 +71,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            console.log('Logout button clicked');
             firebase.auth().signOut().then(() => {
+                console.log('SignOut successful, redirecting...');
                 window.location.href = '/loginview';
             }).catch((error) => {
                 console.error('Çıkış yaparken hata oluştu:', error);
@@ -182,8 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ana sayfaya yönlendirme
     function navigateToHome() {
-        // Mevcut URL'yi temizle ve ana sayfaya yönlendir
-        window.history.replaceState({}, document.title, '/');
+        // Mevcut URL'yi temizle ve ana sayfaya yönlendir - replaceState kaldırıldı
         window.location.href = '/';
     }
     
