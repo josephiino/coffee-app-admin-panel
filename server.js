@@ -19,7 +19,8 @@ const io = socketIo(server, {
   cors: {
     origin: [
       "http://localhost:3000", // Yerel geliştirme
-      "https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app/" // Canlı App Hosting URL'si eklendi
+      "https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app/", // App Hosting URL
+      "https://admin.robobrew.co" // Custom Domain eklendi
     ],
     methods: ["GET", "POST"]
   }
