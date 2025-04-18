@@ -193,17 +193,22 @@ router.delete('/:id', async (req, res) => {
 
 // Yeni Endpoint: Toplam Satış Tutarını Hesapla
 router.get('/stats/total-sales', async (req, res) => {
-    // Başlangıç kontrolü ve loglama
-    if (!isConfigured || !rtdb) {
-        const errorMsg = 'Sunucu hatası: Realtime DB yapılandırılmamış veya başlatılamamış (rtdb objesi null).';
-        console.error('[Stats Endpoint Error - Config]', errorMsg, { isConfigured, rtdbExists: !!rtdb });
-        return res.status(500).json({ error: errorMsg, totalSales: 0 });
+    // Orijinal kod 
+    // Başlangıç kontrolü 
+    if (!rtdb) { 
+        const errorMsg = 'Hizmet Hatası: Realtime Database şu anda kullanılamıyor.';
+        return res.status(503).json({ error: errorMsg, totalSales: 0 }); 
     }
 
     try {
-        console.log('[Stats Endpoint] /orders verisi çekiliyor...'); // Başlangıç logu
+        // Sadece okuma işlemini dene, veriyi işleme
         const snapshot = await rtdb.ref('orders').once('value');
-        console.log('[Stats Endpoint] /orders verisi çekildi, snapshot var mı:', snapshot.exists()); // Snapshot durumu logu
+        
+        // *** TEST: Okuma başarılıysa basit bir yanıt dön ***
+        return res.json({ success: true, message: "RTDB read attempt successful", snapshotExists: snapshot.exists() });
+        // *** TEST BİTTİ ***
+
+        /* // Okunan veriyi işleme kısmı geçici olarak yorumlandı
         const ordersData = snapshot.val();
         let totalSales = 0;
 
@@ -213,52 +218,35 @@ router.get('/stats/total-sales', async (req, res) => {
 
                 // Daha sağlam kontrol: Eğer veri geçerli bir nesne değilse atla
                 if (!data || typeof data !== 'object' || data === null) {
-                    console.warn(`Geçersiz sipariş verisi atlanıyor (key: ${key}):`, data);
                     return; // Sonraki iterasyona geç
                 }
 
                 try { // Her siparişin işlenmesini try-catch içine al
                     if (typeof data.price === 'number') {
-                        // Doğrudan fiyat alanı varsa
                         totalSales += data.price;
                     } else if (data.products && Array.isArray(data.products)) {
-                        // products dizisi varsa
                         data.products.forEach((product, index) => {
-                            // Ürünün geçerli bir nesne ve fiyatın sayı olup olmadığını kontrol et
                             if (product && typeof product === 'object' && typeof product.price === 'number') {
-                                // Miktar geçerli bir sayı ise kullan, değilse 1 varsay
                                 const quantity = (product.quantity && typeof product.quantity === 'number' && product.quantity > 0) ? product.quantity : 1;
                                 totalSales += product.price * quantity;
-                            } else {
-                                console.warn(`Sipariş ${key} içindeki geçersiz ürün atlanıyor (index ${index}):`, product);
                             }
                         });
                     } else if (typeof data.totalPrice === 'number') {
-                        // totalPrice alanı varsa
                         totalSales += data.totalPrice;
                     }
-                    // else { 
-                    //     // İsteğe bağlı: Fiyat bilgisi bulunamayan siparişleri logla
-                    //     console.warn(`Sipariş ${key} için tanınan bir fiyat alanı bulunamadı (price, products array, veya totalPrice).`);
-                    // }
                 } catch (orderError) {
-                    // Tek bir siparişteki hata tüm hesaplamayı durdurmasın
-                    console.error(`Sipariş işlenirken hata oluştu (key: ${key}):`, orderError, "Sipariş Verisi:", data);
+                    // throw orderError; 
                 }
             });
         }
-
-        console.log('Hesaplanan Toplam Satış:', totalSales);
         res.json({ totalSales: totalSales });
+        */ // Okunan veriyi işleme kısmı geçici olarak yorumlandı
 
     } catch (error) {
-        // Daha detaylı hata loglaması
-        console.error('[Stats Endpoint Error - Main Catch]', 'Toplam satış hesaplanırken ana try-catch bloğunda hata oluştu:', error); // error objesi stack trace içermeli
+        // console.error... (Yorumlu)
         res.status(500).json({ 
-            error: 'Toplam satış hesaplanırken sunucu hatası.', 
+            error: 'Toplam satış hesaplanırken bir sunucu hatası oluştu.', 
             totalSales: 0, 
-            // Güvenlik nedeniyle error.message'ı doğrudan kullanıcıya göstermemek daha iyi olabilir.
-            // details: error.message 
         });
     }
 });
