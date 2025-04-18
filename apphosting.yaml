@@ -8,7 +8,3 @@ scripts:
   buildCommand: npm run build # varsa
   runCommand: node server.js # “npm start” yerine
 
-env: # ortam değişkenleri
-  - variable: IYZI_API_KEY
-    secret: iyzi_api_key # Cloud Secret Manager’da saklanacak
-    availability: [RUNTIME]
