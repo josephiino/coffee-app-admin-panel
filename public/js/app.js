@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Backend URL'sini tanımla
-    const backendUrl = 'https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app'; 
+     const backendUrl = 'https://coffee-app-admin-panel--robobrewbetaapp.europe-west4.hosted.app'; // Canlı URL
+    //const backendUrl = 'http://localhost:3000'; // Yerel Geliştirme URL'si
 
     // Socket.io bağlantısını kur (belirtilen backend URL'si ile)
     const socket = io(backendUrl);
