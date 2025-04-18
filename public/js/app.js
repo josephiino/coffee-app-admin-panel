@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Toplam satış çekilirken hata:', error);
                 // Hata durumunda kartı sıfırla veya bir mesaj göster
-                updateSalesCard(0, true); // Hata olduğunu belirt
+                updateSalesCard(0, true, error.message || 'Bilinmeyen bir hata oluştu.'); // Hata mesajını ilet
             });
 
         // TODO: Diğer dashboard verilerini (cihaz durumu, sipariş sayısı vb.) 
@@ -51,26 +51,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Sadece satış kartını güncelleyen fonksiyon
-    function updateSalesCard(total, hasError = false) {
-        console.log(`[updateSalesCard] Çağrıldı. Değer: ${total}, Hata: ${hasError}`);
-        const valueElement = document.querySelector('.stat-card:nth-child(1) .stat-value');
-        const changeElement = document.querySelector('.stat-card:nth-child(1) .stat-change span');
-        const comparisonElement = document.querySelector('.stat-card:nth-child(1) .stat-comparison .value');
-        const changeContainer = document.querySelector('.stat-card:nth-child(1) .stat-change');
-        const comparisonContainer = document.querySelector('.stat-card:nth-child(1) .stat-comparison');
+    function updateSalesCard(total, hasError = false, errorMessage = 'Veri Alınamadı') {
+        console.log(`[updateSalesCard] Çağrıldı. Değer: ${total}, Hata: ${hasError}, Mesaj: ${errorMessage}`);
+        const cardElement = document.querySelector('.stat-card:nth-child(1)'); // Ana kart elementi
+        const valueElement = cardElement.querySelector('.stat-value');
+        const changeContainer = cardElement.querySelector('.stat-change');
+        const comparisonContainer = cardElement.querySelector('.stat-comparison');
 
-        if (valueElement) {
-            console.log('[updateSalesCard] Hedef element bulundu:', valueElement);
-            valueElement.textContent = hasError ? 'Veri Alınamadı' : `₺${total.toFixed(2)}`;
-            
-            console.log('[updateSalesCard] Element içeriği toplam tutar ile güncellendi.');
-        } else {
-            console.error('[updateSalesCard] Hedef element (.stat-card:nth-child(1) .stat-value) bulunamadı!');
+        if (!cardElement || !valueElement) {
+             console.error('[updateSalesCard] Gerekli kart veya değer elementi bulunamadı!');
+             return;
         }
-        if (changeElement) changeElement.textContent = '-';
-        if (comparisonElement) comparisonElement.textContent = '-';
-        if (changeContainer) changeContainer.style.visibility = hasError ? 'hidden' : 'visible';
-        if (comparisonContainer) comparisonContainer.style.visibility = hasError ? 'hidden' : 'visible';
+
+        if (hasError) {
+            valueElement.textContent = errorMessage; // Spesifik hata mesajını göster
+            valueElement.style.fontSize = '1rem'; // Hata mesajı uzun olabileceğinden fontu küçült
+            valueElement.style.color = 'var(--color-danger- Muted, #DC2626)'; // Hata rengi
+            cardElement.classList.add('error-state'); // Hata durumu için sınıf ekle
+             if (changeContainer) changeContainer.style.visibility = 'hidden';
+             if (comparisonContainer) comparisonContainer.style.visibility = 'hidden';
+        } else {
+            valueElement.textContent = `₺${total.toFixed(2)}`;
+            valueElement.style.fontSize = ''; // Normal font boyutuna dön
+            valueElement.style.color = ''; // Normal renge dön
+            cardElement.classList.remove('error-state'); // Hata sınıfını kaldır
+            // Mevcut veride değişim/karşılaştırma olmadığı için gizli tutalım
+            // if (changeContainer) changeContainer.style.visibility = 'visible'; 
+            // if (comparisonContainer) comparisonContainer.style.visibility = 'visible';
+             if (changeContainer) changeContainer.style.visibility = 'hidden'; // Geçici olarak gizli
+             if (comparisonContainer) comparisonContainer.style.visibility = 'hidden'; // Geçici olarak gizli
+        }
     }
 
     // Mevcut updateDashboard fonksiyonu diğer kartlar için kullanılabilir

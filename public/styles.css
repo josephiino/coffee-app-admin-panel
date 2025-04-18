@@ -2023,15 +2023,15 @@ td {
 }
 
 .stock-good {
-    background-color: var(--success);
+    background-color: var(--success-color);
 }
 
 .stock-warning {
-    background-color: var(--warning);
+    background-color: var(--warning-color);
 }
 
 .stock-critical {
-    background-color: var(--danger);
+    background-color: var(--danger-color);
 }
 
 .stock-percentage {
@@ -2048,7 +2048,7 @@ td {
 }
 
 .text-danger {
-    color: var(--danger);
+    color: var(--danger-color);
 }
 
 .text-danger:hover {
@@ -2742,4 +2742,15 @@ td {
 
 .section-header h2 {
     margin-bottom: 0; /* Remove default heading margin if needed */
-} 
+}
+
+.stat-card.error-state {
+    border-color: var(--color-danger-Muted, #F87171); /* Hata durumunda kenarlık rengi */
+    /* İsteğe bağlı: hafif bir arka plan rengi */
+    /* background-color: var(--color-danger-Subtle, #FEE2E2); */
+}
+
+/* Hata durumunda gösterilen metnin stilleri zaten app.js'de ayarlandı */
+/* .stat-card.error-state .stat-value {
+    color: var(--color-danger, #DC2626);
+} */ 
